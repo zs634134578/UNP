@@ -17,9 +17,11 @@
 #include <sys/wait.h>
 #include <sys/select.h>
 #include <sys/time.h>
+#include <fcntl.h>
 
 
 #define BUFSIZE 30
+#define DEBUG 0
 
 /* check the number of args */
 void checkArgc(int& argc, int num);

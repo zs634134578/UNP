@@ -53,6 +53,8 @@ int main(int argc, char* argv[])
         if ( (chipid=fork()) == 0 ) {
 		 	handle_recv(connfd);
         }
+		else 
+			close(connfd);
     }
 
 } 
@@ -66,13 +68,13 @@ void handle_recv(int connfd) {
         memset( recvbuf, '\0', BUFSIZE );
         if ( recv(connfd, recvbuf,BUFSIZE,0) != 0) {
 		 	if (!strcmp(recvbuf, "exit"))
-                break;
+				break;
             fprintf(stderr,"recv msg: %s\n", recvbuf);
             send(connfd, recvbuf, strlen(recvbuf), 0);
             fprintf(stderr,"send back: %s\n\n", recvbuf);
         }
     }
-    close(connfd);
+	close(connfd);
     exit(0);
 }
 
