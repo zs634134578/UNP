@@ -23,6 +23,7 @@
 #define BUFSIZE 30
 #define DEBUG 0
 
+
 /* check the number of args */
 void checkArgc(int& argc, int num);
 

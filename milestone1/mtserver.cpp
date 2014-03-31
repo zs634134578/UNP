@@ -16,66 +16,130 @@ int main(int argc, char* argv[])
     const char* ip = argv[1];
     int port = atoi( argv[2] );
 
-    /* 1 declare socket*/
-    int listenfd, connfd;
+    /* declare socket*/
+    int listenfd, connfd, sockfd;
     int ret;
     
-    /* 2 initialize listen socket*/
+    /* initialize listen socket*/
     mySocket(listenfd);
     
-    /* 3 server address */
+    /* server address */
     struct sockaddr_in servaddr;
     initSockAddr(servaddr, ip, port);
     
-    /* 4 bind */
+    /* bind */
     myBind(listenfd,
 	 	   (struct sockaddr*)&servaddr,
            sizeof(servaddr));
     
-    /* 5 listen */
+    /* listen */
     myListen(listenfd, 5);
     
     /* handle SIGCHLD signal*/
-    signal(SIGCHLD, handle_sigchild);
+    //signal(SIGCHLD, handle_sigchild);
     
-    /* 6 waiting for connecting */
+    /* waiting for connecting */
     pid_t chipid;
     socklen_t clilen;
     struct sockaddr_in cliaddr;
+
+	/* select initialize */
+	int maxfd, maxi, i;
+	bool toclose;
+	int nready, client[FD_SETSIZE];
+	fd_set rset, allset;
+	
+	maxfd = listenfd;
+	maxi = -1;
+	for ( i=0; i < FD_SETSIZE; i++ )
+		client[i] = -1;
+
+	FD_ZERO(&allset);
+	FD_SET(listenfd, &allset);
     
+	printf("Waiting for connecting...\n");
+	
     for(;;) {
-	 	clilen = sizeof(cliaddr);
-        std::cout << "Waiting for connecting ..." << std::endl;
-        connfd = myAccept(listenfd, 
-		 				  (struct sockaddr*)&cliaddr, 
-                          &clilen); 
-        if ( (chipid=fork()) == 0 ) {
-			close(listenfd);   // child reduce refNum in listenfd
-		 	handle_recv(connfd);
-        }
-		else 
-			close(connfd);    // parent reduce refNum in connfd
+		rset = allset;
+		if ( (nready=select(maxfd+1, &rset, NULL, NULL, NULL)) < 0 ) {
+			fprintf(stderr,
+					"select failed.%s\n",
+					strerror(errno));
+			continue;
+		}
+		
+		/* handle listen fd and no recv or no respond */
+		if (FD_ISSET(listenfd, &rset)) {
+			clilen = sizeof(cliaddr);
+			connfd = myAccept(listenfd,
+							  (struct sockaddr*)&cliaddr,
+							  &clilen);
+			printf("Connection is established with sockfd: %d\n",
+				   connfd);
+			for ( i = 0; i < FD_SETSIZE; i++) {
+				if ( client[i] < 0 ) {
+					client[i] = connfd;
+					break;
+				}
+			}
+			
+			if (i == FD_SETSIZE) {
+				fprintf(stderr,
+						"too many clients\n"
+						);
+				break;
+			}
+			
+			FD_SET( connfd, &allset );
+			if ( connfd > maxfd ) {
+				maxfd = connfd;
+			}
+			if ( i > maxi) {
+				maxi = i;
+			}
+			
+			if (--nready <= 0) {
+				continue;
+			}
+		}
+		
+		/* handle accept fds(client[]) and handle recv or respond msg */
+		for ( i = 0; i <= maxi; i++) {
+			if ( (sockfd = client[i]) < 0 )
+				continue;
+			if ( FD_ISSET(sockfd, &rset) ) {
+				if( (toclose = handle_recv(sockfd))) {
+					printf("Client close this connection: %d\n" ,
+						   sockfd);
+					close(sockfd);
+					FD_CLR(sockfd, &allset);
+					client[i] = -1;
+				}
+				
+				if (--nready <= 0) 
+					break;
+			}
+		}
     }
+}
 
-} 
 
-
-void handle_recv(int connfd) {
+bool handle_recv(int connfd) {
      
     char recvbuf[BUFSIZE];
 	printf("Connection %d established...\n", connfd);
-    while(1) {
-        memset( recvbuf, '\0', BUFSIZE );
-        if ( recv(connfd, recvbuf,BUFSIZE,0) != 0) {
-		 	if (!strcmp(recvbuf, "exit"))
-				break;
-            fprintf(stderr,"recv msg: %s\n", recvbuf);
-            send(connfd, recvbuf, strlen(recvbuf), 0);
-            fprintf(stderr,"send back: %s\n\n", recvbuf);
-        }
-    }
-	close(connfd);
-    exit(0);
+
+	memset( recvbuf, '\0', BUFSIZE );
+	if ( recv(connfd, recvbuf,BUFSIZE,0) != 0) {
+		if (!strcmp(recvbuf, "exit"))
+			return true;
+		fprintf(stderr,"recv msg: %s from connfd:%d\n", recvbuf, connfd);
+		send(connfd, recvbuf, strlen(recvbuf), 0);
+		fprintf(stderr,"send back: %s to connfd:%d\n", recvbuf, connfd);
+	}
+	else
+		return true;
+	return false;
 }
 
 

@@ -4,7 +4,7 @@
 #include "common.h"
 
 // handle receive msg, and response
-void handle_recv(int connfd);
+bool handle_recv(int connfd);
 
 // handle zombie function
 void handle_sigchild(int signo);
