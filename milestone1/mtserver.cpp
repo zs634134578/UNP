@@ -132,9 +132,9 @@ bool handle_recv(int connfd) {
 	if ( recv(connfd, recvbuf,BUFSIZE,0) != 0) {
 		if (!strcmp(recvbuf, "exit"))
 			return true;
-		fprintf(stderr,"recv msg: %s from connfd:%d\n", recvbuf, connfd);
+		fprintf(stderr,"recv msg: \"%s\" from connfd:%d\n", recvbuf, connfd);
 		send(connfd, recvbuf, strlen(recvbuf), 0);
-		fprintf(stderr,"send back: %s to connfd:%d\n", recvbuf, connfd);
+		fprintf(stderr,"send back: \"%s\" to connfd:%d\n\n", recvbuf, connfd);
 	}
 	else
 		return true;
