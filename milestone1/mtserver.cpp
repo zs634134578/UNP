@@ -127,7 +127,6 @@ int main(int argc, char* argv[])
 bool handle_recv(int connfd) {
      
     char recvbuf[BUFSIZE];
-	printf("Connection %d established...\n", connfd);
 
 	memset( recvbuf, '\0', BUFSIZE );
 	if ( recv(connfd, recvbuf,BUFSIZE,0) != 0) {
