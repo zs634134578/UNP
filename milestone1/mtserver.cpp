@@ -49,12 +49,12 @@ int main(int argc, char* argv[])
         connfd = myAccept(listenfd, 
 		 				  (struct sockaddr*)&cliaddr, 
                           &clilen); 
-        printf("Connection %d established...\n", listenfd);
         if ( (chipid=fork()) == 0 ) {
+			close(listenfd);   // child reduce refNum in listenfd
 		 	handle_recv(connfd);
         }
 		else 
-			close(connfd);
+			close(connfd);    // parent reduce refNum in connfd
     }
 
 } 
@@ -63,7 +63,7 @@ int main(int argc, char* argv[])
 void handle_recv(int connfd) {
      
     char recvbuf[BUFSIZE];
-    
+	printf("Connection %d established...\n", connfd);
     while(1) {
         memset( recvbuf, '\0', BUFSIZE );
         if ( recv(connfd, recvbuf,BUFSIZE,0) != 0) {

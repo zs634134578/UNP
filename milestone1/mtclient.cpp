@@ -6,10 +6,7 @@
 
 int main(int argc, char* argv[])
 {   
-	if (argc <=2 ) {
-        std::cout << "server ip and port needed." << std::endl;
-        return 1;
-    }
+	checkArgc(argc, 2);
     
     int port = atoi(argv[2]);
     char* ip = argv[1];
