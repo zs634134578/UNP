@@ -68,6 +68,7 @@ void handle_recv(int connfd) {
 		 	if (!strcmp(recvbuf, "exit"))
                 break;
             fprintf(stderr,"recv msg: %s\n", recvbuf);
+			sleep(10);
             send(connfd, recvbuf, strlen(recvbuf), 0);
             fprintf(stderr,"send back: %s\n\n", recvbuf);
         }
