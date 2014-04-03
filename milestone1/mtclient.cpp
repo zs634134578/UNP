@@ -36,7 +36,6 @@ void handle_msg(int sockfd) {
     char sendbuf[BUFSIZE];
     char recvbuf[BUFSIZE];
     
-	signal(SIGALRM, sig_alrm);
 
     while(1) {
 	 	memset( sendbuf, '\0', BUFSIZE );
@@ -50,28 +49,32 @@ void handle_msg(int sockfd) {
 
         if ( !strcmp(sendbuf, "exit"))
             break;
-
-		alarm(5);
-        if (recv(sockfd,recvbuf,BUFSIZE,0) > 0) {
-			alarm(0);
-            printf("recv back:%s\n\n", recvbuf);
+		
+		if (readable_timeo(sockfd, 5) == 0) {
+			fprintf(stderr,
+					"socket timeout\n");
 		}
-		else {
-			if (errno == EINTR)
-				fprintf(stderr,
-						"socket timeout\n");
-			else
-			    fprintf(stderr,
-						"receive error\n");
+		else{
+			recv(sockfd,recvbuf,BUFSIZE,0);
+			printf("recv back:%s\n\n", recvbuf);
 		}
 	}
     close( sockfd );
     return;
 }
 
+int readable_timeo(int fd, int sec) {
+	fd_set rset;
+	struct timeval tv;
+	
+	FD_ZERO(&rset);
+	FD_SET(fd, &rset);
 
-static void sig_alrm(int signo) {
-	fprintf(stderr,
-			"recv SIGALRM, return.\n");
-	return;
+	tv.tv_sec = sec;
+	tv.tv_usec = 0;
+
+	return select(fd+1, &rset, NULL, NULL, &tv);
 }
+
+
+
