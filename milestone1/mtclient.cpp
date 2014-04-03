@@ -34,8 +34,14 @@ int main(int argc, char* argv[])
 void handle_msg(int sockfd) {
 
     char sendbuf[BUFSIZE];
-    char recvbuf[BUFSIZE];
-    
+    char recvbuf[BUFSIZE + 1];
+	int n;
+	struct timeval tv;
+
+	tv.tv_sec = 5;
+	tv.tv_usec = 0;
+	setsockopt( sockfd, SOL_SOCKET, SO_RCVTIMEO,
+			   &tv, sizeof(tv) );
 
     while(1) {
 	 	memset( sendbuf, '\0', BUFSIZE );
@@ -49,31 +55,23 @@ void handle_msg(int sockfd) {
 
         if ( !strcmp(sendbuf, "exit"))
             break;
-		
-		if (readable_timeo(sockfd, 5) == 0) {
-			fprintf(stderr,
-					"socket timeout\n");
+
+		if ( (n=recv(sockfd,recvbuf,BUFSIZE,0)) < 0 ) {
+			if (errno == EWOULDBLOCK) {
+				fprintf(stderr,
+						"socket timeout\n");
+				continue;
+			}
+			else
+				fprintf(stderr,
+						"recv error");
 		}
 		else{
-			recv(sockfd,recvbuf,BUFSIZE,0);
 			printf("recv back:%s\n\n", recvbuf);
 		}
 	}
     close( sockfd );
     return;
-}
-
-int readable_timeo(int fd, int sec) {
-	fd_set rset;
-	struct timeval tv;
-	
-	FD_ZERO(&rset);
-	FD_SET(fd, &rset);
-
-	tv.tv_sec = sec;
-	tv.tv_usec = 0;
-
-	return select(fd+1, &rset, NULL, NULL, &tv);
 }
 
 
